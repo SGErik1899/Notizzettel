@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Schleusen Meldeprogramm</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #30363d;
+      --accent: #1f6feb;
+      --green: #238636;
+      --green-bright: #3fb950;
+      --green-bg: #0d3320;
+      --text: #c9d1d9;
+      --text-dim: #8b949e;
+      --red: #da3633;
+      --header-bg: #0d1f3c;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Barlow Condensed', sans-serif;
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--header-bg);
+      border-bottom: 2px solid var(--accent);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .logo-icon {
+      width: 42px; height: 42px;
+      border: 2px solid var(--accent);
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+    }
+
+    header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #fff;
+    }
+
+    header p {
+      font-size: 12px;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-family: 'Share Tech Mono', monospace;
+    }
+
+    /* ── Main layout ── */
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 28px 20px 60px;
+    }
+
+    /* ── Section cards ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .card-label {
+      font-size: 11px;
+      font-family: 'Share Tech Mono', monospace;
+      color: var(--text-dim);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ── Schleuse Selector ── */
+    .select-wrapper {
+      position: relative;
+    }
+
+    select {
+      width: 100%;
+      background: #0d1117;
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      color: #fff;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      padding: 12px 16px;
+      cursor: pointer;
+      appearance: none;
+      outline: none;
+    }
+
+    select:focus { border-color: #58a6ff; box-shadow: 0 0 0 3px rgba(31,111,235,.25); }
+
+    .select-arrow {
+      position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+      pointer-events: none; color: var(--accent); font-size: 18px;
+    }
+
+    /* ── Status Buttons ── */
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 12px;
+    }
+
+    .status-btn {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 10px;
+      cursor: pointer;
+      text-align: center;
+      transition: all .15s ease;
+      user-select: none;
+    }
+
+    .status-btn:hover:not(.active) {
+      border-color: var(--accent);
+      background: #0d1f3c;
+    }
+
+    .status-btn .btn-name {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text);
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .status-btn .btn-time {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      color: var(--text-dim);
+      min-height: 14px;
+      display: block;
+    }
+
+    .status-btn.active {
+      background: var(--green-bg);
+      border-color: var(--green-bright);
+      box-shadow: 0 0 12px rgba(63,185,80,.2);
+    }
+
+    .status-btn.active .btn-name { color: var(--green-bright); }
+    .status-btn.active .btn-time { color: #56d364; }
+
+    .check-icon {
+      display: none;
+      font-size: 18px;
+      margin-bottom: 4px;
+      color: var(--green-bright);
+    }
+
+    .status-btn.active .check-icon { display: block; }
+
+    /* ── Log textarea ── */
+    .log-area {
+      width: 100%;
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 15px;
+      padding: 12px;
+      resize: vertical;
+      min-height: 120px;
+      outline: none;
+      line-height: 1.5;
+    }
+
+    .log-area:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(31,111,235,.2); }
+    .log-area::placeholder { color: var(--text-dim); font-style: italic; }
+
+    .log-hint {
+      font-size: 11px;
+      font-family: 'Share Tech Mono', monospace;
+      color: var(--text-dim);
+      margin-top: 6px;
+    }
+
+    /* ── Log entries display ── */
+    .log-entries {
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .log-entry {
+      background: #0d1117;
+      border-left: 3px solid var(--accent);
+      border-radius: 0 6px 6px 0;
+      padding: 8px 12px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .log-entry .entry-time {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      color: var(--accent);
+      margin-bottom: 2px;
+    }
+
+    .log-entry .entry-text { color: var(--text); }
+
+    /* ── Buttons row ── */
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .action-btn {
+      flex: 1;
+      min-width: 160px;
+      padding: 13px 20px;
+      border-radius: 7px;
+      border: none;
+      cursor: pointer;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      transition: all .15s ease;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+
+    .btn-save {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-save:hover { background: #388bfd; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(31,111,235,.4); }
+
+    .btn-log {
+      background: var(--green);
+      color: #fff;
+    }
+    .btn-log:hover { background: #2ea043; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(35,134,54,.4); }
+
+    .btn-reset {
+      background: transparent;
+      color: var(--red);
+      border: 1px solid var(--red);
+    }
+    .btn-reset:hover { background: rgba(218,54,51,.12); transform: translateY(-1px); }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: 24px; right: 24px;
+      background: var(--surface);
+      border: 1px solid var(--green-bright);
+      color: var(--green-bright);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 13px;
+      padding: 10px 18px;
+      border-radius: 6px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s;
+      z-index: 999;
+    }
+    #toast.show { opacity: 1; }
+
+    /* ── Timestamp display top ── */
+    .session-meta {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12px;
+      color: var(--text-dim);
+      text-align: right;
+      margin-bottom: 10px;
+      letter-spacing: .5px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo-icon">⚓</div>
+  <div>
+    <h1>Schleusen Meldeprogramm</h1>
+    <p>Wasserstraßen- und Schifffahrtsverwaltung</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="session-meta" id="sessionMeta">Sitzung gestartet: —</div>
+
+  <!-- Schleuse Auswahl -->
+  <div class="card">
+    <div class="card-label">⬡ Schleuse auswählen</div>
+    <div class="select-wrapper">
+      <select id="schleuseSelect">
+        <option value="">— Schleuse wählen —</option>
+        <option>Krotzenburg</option>
+        <option>Kleinostheim</option>
+        <option>Obernau</option>
+        <option>Wallstadt</option>
+        <option>Klingenberg</option>
+        <option>Heubach</option>
+        <option>Freudenberg</option>
+        <option>Faulbach</option>
+        <option>Eichel</option>
+        <option>Lengfurt</option>
+      </select>
+      <span class="select-arrow">▾</span>
+    </div>
+  </div>
+
+  <!-- Status Felder -->
+  <div class="card">
+    <div class="card-label">⬡ Meldestatus — Klick erfasst Zeitstempel (einmalig)</div>
+    <div class="status-grid" id="statusGrid">
+      <div class="status-btn" data-id="ils" onclick="toggleStatus(this)">
+        <span class="check-icon">✓</span>
+        <span class="btn-name">ILS</span>
+        <span class="btn-time" id="time-ils">Nicht gemeldet</span>
+      </div>
+      <div class="status-btn" data-id="wsp" onclick="toggleStatus(this)">
+        <span class="check-icon">✓</span>
+        <span class="btn-name">WSP</span>
+        <span class="btn-time" id="time-wsp">Nicht gemeldet</span>
+      </div>
+      <div class="status-btn" data-id="abz" onclick="toggleStatus(this)">
+        <span class="check-icon">✓</span>
+        <span class="btn-name">ABz.</span>
+        <span class="btn-time" id="time-abz">Nicht gemeldet</span>
+      </div>
+      <div class="status-btn" data-id="schifffahrtsbuero" onclick="toggleStatus(this)">
+        <span class="check-icon">✓</span>
+        <span class="btn-name">Schifffahrtsbüro</span>
+        <span class="btn-time" id="time-schifffahrtsbuero">Nicht gemeldet</span>
+      </div>
+      <div class="status-btn" data-id="revierzentrale" onclick="toggleStatus(this)">
+        <span class="check-icon">✓</span>
+        <span class="btn-name">Revierzentrale</span>
+        <span class="btn-time" id="time-revierzentrale">Nicht gemeldet</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Textfeld / Log -->
+  <div class="card">
+    <div class="card-label">⬡ Informationsprotokoll</div>
+    <textarea class="log-area" id="logInput" placeholder="Informationen hier eingeben und auf „Eintrag hinzufügen" klicken …" rows="4"></textarea>
+    <div class="log-hint">Jeder Eintrag wird mit Datum und Uhrzeit gespeichert.</div>
+    <div class="log-entries" id="logEntries"></div>
+  </div>
+
+  <!-- Aktionen -->
+  <div class="card">
+    <div class="card-label">⬡ Aktionen</div>
+    <div class="btn-row">
+      <button class="action-btn btn-log" onclick="addLogEntry()">📝 Eintrag hinzufügen</button>
+      <button class="action-btn btn-save" onclick="savePDF()">⬇ Als PDF speichern</button>
+      <button class="action-btn btn-reset" onclick="resetAll()">↺ Zurücksetzen</button>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast">Aktion erfolgreich</div>
+
+<script>
+  // ── State ──
+  let sessionStart = new Date();
+  let statusTimestamps = {};
+  let logEntries = [];
+
+  document.getElementById('sessionMeta').textContent =
+    'Sitzung gestartet: ' + formatTs(sessionStart);
+
+  // ── Helpers ──
+  function formatTs(d) {
+    return d.toLocaleDateString('de-DE') + ' ' +
+      d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  // ── Status Buttons ──
+  function toggleStatus(el) {
+    const id = el.dataset.id;
+    if (el.classList.contains('active')) return; // einmalig
+    const now = new Date();
+    statusTimestamps[id] = now;
+    el.classList.add('active');
+    document.getElementById('time-' + id).textContent = formatTs(now);
+    showToast('✓ ' + el.querySelector('.btn-name').textContent + ' — ' + formatTs(now));
+  }
+
+  // ── Log Entries ──
+  function addLogEntry() {
+    const input = document.getElementById('logInput');
+    const text = input.value.trim();
+    if (!text) { showToast('⚠ Bitte Text eingeben.'); return; }
+    const now = new Date();
+    logEntries.push({ time: now, text });
+    renderLogEntries();
+    input.value = '';
+    showToast('📝 Eintrag gespeichert');
+  }
+
+  function renderLogEntries() {
+    const container = document.getElementById('logEntries');
+    container.innerHTML = '';
+    logEntries.forEach(e => {
+      const div = document.createElement('div');
+      div.className = 'log-entry';
+      div.innerHTML = `<div class="entry-time">${formatTs(e.time)}</div><div class="entry-text">${escapeHtml(e.text)}</div>`;
+      container.appendChild(div);
+    });
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ── PDF Export ──
+  function savePDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+    const schleuse = document.getElementById('schleuseSelect').value || '(keine Schleuse gewählt)';
+    const lineH = 7;
+    let y = 20;
+    const lm = 20;
+    const pw = 170;
+
+    // Header
+    doc.setFillColor(13, 31, 60);
+    doc.rect(0, 0, 210, 30, 'F');
+    doc.setTextColor(255,255,255);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(16);
+    doc.text('Schleusen Meldeprogramm', lm, 13);
+    doc.setFontSize(9);
+    doc.setFont('helvetica','normal');
+    doc.text('Wasserstraßen- und Schifffahrtsverwaltung', lm, 20);
+    doc.text('Erstellt: ' + formatTs(new Date()), 210 - lm, 20, { align: 'right' });
+
+    y = 40;
+
+    // Schleuse
+    doc.setTextColor(30,30,30);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(13);
+    doc.text('Schleuse: ' + schleuse, lm, y); y += 10;
+
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(9);
+    doc.setTextColor(100,100,100);
+    doc.text('Sitzung gestartet: ' + formatTs(sessionStart), lm, y); y += 12;
+
+    // Divider
+    doc.setDrawColor(200,200,200); doc.line(lm, y, 210 - lm, y); y += 8;
+
+    // Status
+    doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(30,30,30);
+    doc.text('Meldestatus', lm, y); y += 8;
+
+    const statusNames = { ils:'ILS', wsp:'WSP', abz:'ABz.', schifffahrtsbuero:'Schifffahrtsbüro', revierzentrale:'Revierzentrale' };
+    doc.setFont('helvetica','normal'); doc.setFontSize(10);
+    Object.entries(statusNames).forEach(([id, name]) => {
+      const ts = statusTimestamps[id];
+      const status = ts ? '✓  ' + formatTs(ts) : '○  Nicht gemeldet';
+      if (ts) { doc.setTextColor(35,134,54); } else { doc.setTextColor(150,150,150); }
+      doc.text(name + ':', lm, y);
+      doc.text(status, lm + 45, y);
+      y += lineH;
+    });
+
+    y += 6;
+    doc.setDrawColor(200,200,200); doc.line(lm, y, 210 - lm, y); y += 8;
+
+    // Log
+    doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(30,30,30);
+    doc.text('Informationsprotokoll', lm, y); y += 8;
+
+    if (logEntries.length === 0) {
+      doc.setFont('helvetica','italic'); doc.setFontSize(9); doc.setTextColor(150,150,150);
+      doc.text('Keine Einträge.', lm, y); y += 8;
+    } else {
+      logEntries.forEach((e, i) => {
+        if (y > 270) { doc.addPage(); y = 20; }
+        doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(31,111,235);
+        doc.text(formatTs(e.time), lm, y); y += 5;
+        doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(30,30,30);
+        const lines = doc.splitTextToSize(e.text, pw);
+        lines.forEach(line => {
+          if (y > 270) { doc.addPage(); y = 20; }
+          doc.text(line, lm, y); y += lineH;
+        });
+        y += 3;
+      });
+    }
+
+    const filename = 'Meldung_' + schleuse.replace(/\s/g,'_') + '_' +
+      new Date().toISOString().slice(0,10) + '.pdf';
+    doc.save(filename);
+    showToast('📄 PDF gespeichert');
+  }
+
+  // ── Reset ──
+  function resetAll() {
+    if (!confirm('Alle Daten zurücksetzen?')) return;
+    document.getElementById('schleuseSelect').value = '';
+    document.querySelectorAll('.status-btn').forEach(el => {
+      el.classList.remove('active');
+      const id = el.dataset.id;
+      document.getElementById('time-' + id).textContent = 'Nicht gemeldet';
+    });
+    statusTimestamps = {};
+    logEntries = [];
+    renderLogEntries();
+    document.getElementById('logInput').value = '';
+    sessionStart = new Date();
+    document.getElementById('sessionMeta').textContent = 'Sitzung gestartet: ' + formatTs(sessionStart);
+    showToast('↺ Zurückgesetzt');
+  }
+
+  // Enter in textarea → Eintrag hinzufügen (Shift+Enter = neue Zeile)
+  document.getElementById('logInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addLogEntry(); }
+  });
+</script>
+</body>
+</html>
